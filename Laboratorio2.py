@@ -1,7 +1,6 @@
 import random
 
 class NodoHeroe:
-    def __init__ (self, nombre, nivel,puntosvida, ataque):
         self.nombre = nombre
         self.nivel = nivel
         self.puntosvida = puntosvida
@@ -41,12 +40,12 @@ class ListaHeroe:
             self.head = actual.next
         print(f"Héroe '{nombre}' eliminado correctamente.")
 
-
     def buscar_heroe(self, nombre):
         actual = self.head
         while actual:
             if actual.nombre == nombre:
-                return actual
+                print(f"Héroe encontrado: Nombre: {actual.nombre}, Nivel: {actual.nivel}, PV: {actual.puntosvida}, Ataque: {actual.ataque}")
+                return True
             actual = actual.next
         return None
     
@@ -60,8 +59,10 @@ class ListaHeroe:
             actual = actual.next
 
     def mejorar_heroe(self, nombre, incremento_PV, incremento_ataque):
-        heroe = self.buscar_heroe(nombre)
-        if heroe:
+        if self.buscar_heroe(nombre) == True:
+            heroe = self.head
+            while heroe and heroe.nombre != nombre:
+                heroe = heroe.next
             heroe.puntosvida += incremento_PV
             heroe.ataque += incremento_ataque
             print(f"Héroe '{nombre}' mejorado. PV: {heroe.puntosvida}, Ataque: {heroe.ataque}")
@@ -173,16 +174,15 @@ class ListaCircularTurnos:
             print("\nFin de la ronda. Estado actual de los héroes:")
             lista_info.mostrar_lista()
 
-
-
 # MAIN
 
 listaheroe = ListaHeroe()
 listaheroe.agregar_heroe("Aragorn", 10, 100, 20)
 listaheroe.agregar_heroe("Legolas", 8, 80, 25)
 listaheroe.mostrar_lista()
+listaheroe.buscar_heroe("Aragorn")
 
-listaturno = ListaCircularTurnos()
-listaturno.agregar_turno("Aragorn")
-listaturno.agregar_turno("Legolas")
-listaturno.mostrar_turnoscircular()
+#listaturno = ListaCircularTurnos()
+#listaturno.agregar_turno("Aragorn")
+#listaturno.agregar_turno("Legolas")
+#listaturno.mostrar_turnoscircular()
