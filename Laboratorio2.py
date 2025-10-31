@@ -1,11 +1,12 @@
 import random
 
 class NodoHeroe:
-    def __init__(self, nombre, nivel, puntosvida, ataque):
+    def __init__(self, nombre, nivel, puntosvida, ataque, poder):
         self.nombre = nombre
         self.nivel = nivel
         self.puntosvida = puntosvida
         self.ataque = ataque
+        self.poder = poder
         self.next = None
 
 class ListaHeroe:
@@ -13,8 +14,10 @@ class ListaHeroe:
     def __init__(self):
         self.head = None
     
-    def agregar_heroe(self, nombre, nivel, puntosvida, ataque):
-        nuevo_heroe = NodoHeroe(nombre, nivel, puntosvida, ataque)
+    def agregar_heroe(self, nombre, nivel, puntosvida, ataque, poder):
+        while poder != "fuego" and poder != "agua" and poder != "tierra":
+            poder = input("Ingrese un poder válido (fuego, agua, tierra): ")
+        nuevo_heroe = NodoHeroe(nombre, nivel, puntosvida, ataque, poder)
         if not self.head:
             self.head = nuevo_heroe
         else:
@@ -45,7 +48,7 @@ class ListaHeroe:
         actual = self.head
         while actual:
             if actual.nombre == nombre:
-                print(f"Héroe encontrado: Nombre: {actual.nombre}, Nivel: {actual.nivel}, PV: {actual.puntosvida}, Ataque: {actual.ataque}")
+                print(f"Héroe encontrado: Nombre: {actual.nombre}, Nivel: {actual.nivel}, PV: {actual.puntosvida}, Ataque: {actual.ataque}, Poder: {actual.poder}")
                 return True
             actual = actual.next
         return None
@@ -56,11 +59,11 @@ class ListaHeroe:
             return
         actual = self.head
         while actual:
-            print(f'Nombre: {actual.nombre}, Nivel: {actual.nivel}, PV: {actual.puntosvida}, Ataque: {actual.ataque}')
+            print(f'Nombre: {actual.nombre}, Nivel: {actual.nivel}, PV: {actual.puntosvida}, Ataque: {actual.ataque}, Poder: {actual.poder}')
             actual = actual.next
 
     def mejorar_heroe(self, nombre, incremento_PV, incremento_ataque):
-        if self.buscar_heroe(nombre) == True:
+        if self.buscar_heroe(nombre):
             heroe = self.head
             while heroe and heroe.nombre != nombre:
                 heroe = heroe.next
@@ -71,12 +74,67 @@ class ListaHeroe:
             print(f"No se encontró el héroe '{nombre}'.")
 
     def curar_heroe(self, nombre, puntos):
-        heroe = self.buscar_heroe(nombre)
-        if heroe:
-            heroe.puntosvida += puntos
-            print(f"{nombre} se curó {puntos} puntos. PV actual: {heroe.puntosvida}")
-        else:
-            print(f"No se encontró el héroe '{nombre}'.")
+        heroe = self.head
+        while heroe and heroe.nombre != nombre:
+            heroe = heroe.next
+        heroe.puntosvida += puntos
+        print(f"{nombre} se curó {puntos} puntos de vida. PV actual: {heroe.puntosvida}")
+
+    def restar_vida_aleatoria(self, nombre, daño):
+        heroe = self.head
+        while heroe and heroe.nombre != nombre:
+            heroe = heroe.next
+        heroe.puntosvida -= daño
+        if heroe.puntosvida < 0:
+            heroe.puntosvida = 0
+            print(f"{nombre} perdió {daño} puntos de vida. PV actual: {heroe.puntosvida}. {nombre} ha sido derrotado.")
+            return True
+        print(f"{nombre} perdió {daño} puntos de vida. PV actual: {heroe.puntosvida}")
+
+    def heroe_mayor_PV(self):
+        if not self.head:
+            print("La lista está vacía.")
+            return
+        mayor = self.head
+        actual = self.head.next
+        while actual:
+            if actual.puntosvida > mayor.puntosvida:
+                mayor = actual
+            actual = actual.next
+        print(f"Héroe con mayor PV: {mayor.nombre} con {mayor.puntosvida} puntos de vida.")
+    
+    def mostrar_lista_final (self):
+        if not self.head:
+            print("La lista está vacía.")
+            return
+        actual = self.head
+        while actual:
+            if actual.puntosvida > 0:
+                print(f'Nombre: {actual.nombre}, PV: {actual.puntosvida}, Estado: Vivo')
+            else:
+                print(f'Nombre: {actual.nombre}, PV: {actual.puntosvida}, Estado: Eliminado')
+            actual = actual.next
+    
+    def obtener_ataque(self, nombre):
+        heroe = self.head
+        while heroe and heroe.nombre != nombre:
+            heroe = heroe.next
+        return heroe.ataque 
+    
+    def obtener_poder(self, nombre):
+        heroe = self.head
+        while heroe and heroe.nombre != nombre:
+            heroe = heroe.next
+        return heroe.poder
+    
+    def calcular_daño(self, nombre_atacante, nombre_atacado):
+        daño = random.randint(5, 30) + self.obtener_ataque(nombre_atacante)
+        if (self.obtener_poder(nombre_atacante) == "fuego" and self.obtener_poder(nombre_atacado) == "agua" or ):
+            self.obtener_poder(nombre_atacante) == "agua" and self.obtener_poder(nombre_atacado) == "tierra" or
+            self.obtener_poder(nombre_atacante) == "tierra" and self.obtener_poder(nombre_atacado) == "fuego"):
+            daño /= 2
+            print(f"El ataque de {nombre_atacante} ({self.obtener_poder(nombre_atacante)}) no es muy efectivo contra {nombre_atacado} ({self.obtener_poder(nombre_atacado)}). Daño reducido a la mitad.")
+        return daño
 
 class NodoTurno:
     def __init__(self, nombre_heroe):
@@ -125,7 +183,8 @@ class ListaCircularTurnos:
             previo = actual
             actual = actual.next
             if actual == self.head:
-                break
+                print(f"No se encontró el héroe '{nombre_heroe}' en los turnos.")
+                return
 
     def mostrar_turnoscircular(self):
         if not self.head:
@@ -139,6 +198,14 @@ class ListaCircularTurnos:
             if actual == self.head:
                 break
 
+    def atacar_heroe_aleatorio(self, nombre_atacante):
+        actual = self.head
+        while True:
+            for i in range(random.randint(1, 11)): #Se escoge un número aleatorio de 1 a 10, pero podía otro rango 
+                actual = actual.next
+            if actual.nombre_heroe != nombre_atacante:
+                return actual.nombre_heroe
+        
     def recorrer(self, rondas, lista_info):
         if not self.head:
             print("No hay héroes en la lista de turnos.")
@@ -147,7 +214,6 @@ class ListaCircularTurnos:
         for ronda in range(1, rondas + 1):
             print(f"\n=== Ronda {ronda} ===")
             actual = self.head
-            contador = 0
 
             # este while controla una vuelta completa (por cada héroe)
             while True:
@@ -157,9 +223,12 @@ class ListaCircularTurnos:
                 print(f"Acción automática: {accion}")
 
                 if accion == "A":
-                    puntos = random.randint(5, 30)
-                    print(f"{nombre} ataca con {puntos} puntos.")
-                    lista_info.restar_vida_aleatoria(nombre, puntos)
+                    heroe_atacado = self.atacar_heroe_aleatorio(nombre)
+                    daño = lista_info.calcular_daño(nombre, heroe_atacado)
+                    print(f"{nombre} ataca con {daño} puntos a {heroe_atacado}.")
+                    derrotado = lista_info.restar_vida_aleatoria(heroe_atacado, daño)
+                    if derrotado:
+                        self.eliminar_turno(nombre)
                 elif accion == "C":
                     puntos = random.randint(5, 30)
                     print(f"{nombre} se cura {puntos} puntos.")
@@ -168,7 +237,6 @@ class ListaCircularTurnos:
                     print(f"{nombre} pasa su turno.")
 
                 actual = actual.next
-                contador += 1
                 if actual == self.head:
                     break
 
@@ -183,7 +251,7 @@ listaheroe.agregar_heroe("Legolas", 8, 80, 25)
 listaheroe.mostrar_lista()
 listaheroe.buscar_heroe("Aragorn")
 
-#listaturno = ListaCircularTurnos()
-#listaturno.agregar_turno("Aragorn")
-#listaturno.agregar_turno("Legolas")
-#listaturno.mostrar_turnoscircular()
+listaturno = ListaCircularTurnos()
+listaturno.agregar_turno("Aragorn")
+listaturno.agregar_turno("Legolas")
+listaturno.mostrar_turnoscircular()
