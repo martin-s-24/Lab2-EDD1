@@ -1,6 +1,7 @@
 import random
 
 class NodoHeroe:
+    def __init__(self, nombre, nivel, puntosvida, ataque):
         self.nombre = nombre
         self.nivel = nivel
         self.puntosvida = puntosvida
