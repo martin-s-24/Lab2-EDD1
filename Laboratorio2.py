@@ -127,12 +127,18 @@ class ListaHeroe:
             heroe = heroe.next
         return heroe.poder
     
+    def obtener_puntosvida(self, nombre):
+        heroe = self.head
+        while heroe and heroe.nombre != nombre:
+            heroe = heroe.next
+        return heroe.puntosvida
+    
     def calcular_daño(self, nombre_atacante, nombre_atacado):
         daño = random.randint(5, 30) + self.obtener_ataque(nombre_atacante)
-        if (self.obtener_poder(nombre_atacante) == "fuego" and self.obtener_poder(nombre_atacado) == "agua" or ):
+        if (self.obtener_poder(nombre_atacante) == "fuego" and self.obtener_poder(nombre_atacado) == "agua" or
             self.obtener_poder(nombre_atacante) == "agua" and self.obtener_poder(nombre_atacado) == "tierra" or
             self.obtener_poder(nombre_atacante) == "tierra" and self.obtener_poder(nombre_atacado) == "fuego"):
-            daño /= 2
+            daño = round(daño / 2)
             print(f"El ataque de {nombre_atacante} ({self.obtener_poder(nombre_atacante)}) no es muy efectivo contra {nombre_atacado} ({self.obtener_poder(nombre_atacado)}). Daño reducido a la mitad.")
         return daño
 
@@ -145,17 +151,24 @@ class ListaCircularTurnos:
     def __init__(self):
         self.head = None
 
-    def agregar_turno(self, nombre_heroe):
-        nuevo = NodoTurno(nombre_heroe)
-        if not self.head:
-            self.head = nuevo
-            nuevo.next = self.head
-        else:
-            temp = self.head
-            while temp.next != self.head:
-                temp = temp.next
-            temp.next = nuevo
-            nuevo.next = self.head
+    def agregar_turnos(self, lista_heroes):
+        if lista_heroes.head is None:
+            print("No hay héroes para agregar a la lista de turnos.")
+            return
+    
+        actual = lista_heroes.head
+        while actual:
+            nuevo = NodoTurno(actual.nombre)
+            if not self.head:
+                self.head = nuevo
+                nuevo.next = self.head
+            else:
+                temp = self.head
+                while temp.next != self.head:
+                    temp = temp.next
+                temp.next = nuevo
+                nuevo.next = self.head
+            actual = actual.next
 
     def eliminar_turno(self, nombre_heroe):
         if not self.head:
@@ -170,21 +183,15 @@ class ListaCircularTurnos:
                 if previo:
                     previo.next = actual.next
                 else:
-                    if actual.next == self.head:
-                        self.head = None
-                    else:
-                        temp = self.head
-                        while temp.next != self.head:
-                            temp = temp.next
-                        temp.next = actual.next
-                        self.head = actual.next
+                    temp = self.head
+                    while temp.next != self.head:
+                        temp = temp.next
+                    temp.next = actual.next
+                    self.head = actual.next
                 print(f"Héroe '{nombre_heroe}' eliminado de los turnos.")
                 return
             previo = actual
             actual = actual.next
-            if actual == self.head:
-                print(f"No se encontró el héroe '{nombre_heroe}' en los turnos.")
-                return
 
     def mostrar_turnoscircular(self):
         if not self.head:
@@ -198,14 +205,62 @@ class ListaCircularTurnos:
             if actual == self.head:
                 break
 
-    def atacar_heroe_aleatorio(self, nombre_atacante):
+    def atacar_heroe_aleatorio(self, nombre_atacante, lista_info):
         actual = self.head
         while True:
             for i in range(random.randint(1, 11)): #Se escoge un número aleatorio de 1 a 10, pero podía otro rango 
                 actual = actual.next
-            if actual.nombre_heroe != nombre_atacante:
+            if actual.nombre_heroe != nombre_atacante and lista_info.obtener_puntosvida(actual.nombre_heroe) > 0:
                 return actual.nombre_heroe
         
+    def ordenar_por_puntosvida(self, lista_info):
+        if self.head is None or self.head.next == self.head:
+            return  # Lista vacía o con un solo nodo
+
+        cambiado = True
+        while cambiado:
+            cambiado = False
+            actual = self.head
+            anterior = None
+
+            while True:
+                siguiente = actual.next
+
+                pv_actual = lista_info.obtener_puntosvida(actual.nombre_heroe)
+                pv_siguiente = lista_info.obtener_puntosvida(siguiente.nombre_heroe)
+
+                if pv_actual < pv_siguiente:
+                    cambiado = True
+
+                    # Intercambio de nodos
+                    actual.next = siguiente.next
+                    siguiente.next = actual
+
+                    if anterior is None:
+                        # Si estamos intercambiando el head, el nuevo head será 'siguiente'
+                        self.head = siguiente
+
+                        # 🔧 Reconectar el último nodo al nuevo head
+                        temp = self.head
+                        while temp.next != actual:
+                            temp = temp.next
+                        temp.next = self.head
+                    else:
+                        anterior.next = siguiente
+
+                    # Avanzar los punteros
+                    anterior = siguiente
+                    actual = actual.next
+                else:
+                    anterior = actual
+                    actual = actual.next
+
+                # Si dimos la vuelta completa, paramos esta pasada
+                if actual.next == self.head:
+                    break
+
+
+
     def recorrer(self, rondas, lista_info):
         if not self.head:
             print("No hay héroes en la lista de turnos.")
@@ -223,12 +278,12 @@ class ListaCircularTurnos:
                 print(f"Acción automática: {accion}")
 
                 if accion == "A":
-                    heroe_atacado = self.atacar_heroe_aleatorio(nombre)
+                    heroe_atacado = self.atacar_heroe_aleatorio(nombre, lista_info)
                     daño = lista_info.calcular_daño(nombre, heroe_atacado)
                     print(f"{nombre} ataca con {daño} puntos a {heroe_atacado}.")
                     derrotado = lista_info.restar_vida_aleatoria(heroe_atacado, daño)
                     if derrotado:
-                        self.eliminar_turno(nombre)
+                        self.eliminar_turno(heroe_atacado)
                 elif accion == "C":
                     puntos = random.randint(5, 30)
                     print(f"{nombre} se cura {puntos} puntos.")
@@ -239,19 +294,28 @@ class ListaCircularTurnos:
                 actual = actual.next
                 if actual == self.head:
                     break
-
+            self.ordenar_por_puntosvida(lista_info)
             print("\nFin de la ronda. Estado actual de los héroes:")
             lista_info.mostrar_lista()
+            if actual == actual.next:
+                print(f"\nEl combate ha terminado. Solo queda {actual.nombre_heroe}.")
+                break
+        print("\nFin del combate.")
 
 # MAIN
 
 listaheroe = ListaHeroe()
-listaheroe.agregar_heroe("Aragorn", 10, 100, 20)
-listaheroe.agregar_heroe("Legolas", 8, 80, 25)
+listaheroe.agregar_heroe("Aragorn", 10, 100, 20, "fuego")
+listaheroe.agregar_heroe("Legolas", 8, 80, 25, "agua")
+listaheroe.agregar_heroe("Gimili", 12, 70, 30, "tierra")
+listaheroe.agregar_heroe("Tron", 15, 90, 30, "agua")
 listaheroe.mostrar_lista()
-listaheroe.buscar_heroe("Aragorn")
 
 listaturno = ListaCircularTurnos()
-listaturno.agregar_turno("Aragorn")
-listaturno.agregar_turno("Legolas")
+listaturno.agregar_turnos(listaheroe)
 listaturno.mostrar_turnoscircular()
+
+listaturno.recorrer(5, listaheroe)
+
+listaheroe.heroe_mayor_PV()
+listaheroe.mostrar_lista_final()
