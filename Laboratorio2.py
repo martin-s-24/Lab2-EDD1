@@ -223,7 +223,7 @@ class ListaCircularTurnos:
             actual = self.head
             anterior = None
 
-            while True:
+            while actual.next != self.head:
                 siguiente = actual.next
 
                 pv_actual = lista_info.obtener_puntosvida(actual.nombre_heroe)
@@ -232,15 +232,10 @@ class ListaCircularTurnos:
                 if pv_actual < pv_siguiente:
                     cambiado = True
 
-                    # Intercambio de nodos
-                    actual.next = siguiente.next
-                    siguiente.next = actual
-
                     if anterior is None:
                         # Si estamos intercambiando el head, el nuevo head será 'siguiente'
                         self.head = siguiente
-
-                        # 🔧 Reconectar el último nodo al nuevo head
+                        # Reconectar el último nodo al nuevo head
                         temp = self.head
                         while temp.next != actual:
                             temp = temp.next
@@ -248,17 +243,12 @@ class ListaCircularTurnos:
                     else:
                         anterior.next = siguiente
 
-                    # Avanzar los punteros
+                    actual.next = siguiente.next
+                    siguiente.next = actual
                     anterior = siguiente
-                    actual = actual.next
                 else:
                     anterior = actual
                     actual = actual.next
-
-                # Si dimos la vuelta completa, paramos esta pasada
-                if actual.next == self.head:
-                    break
-
 
 
     def recorrer(self, rondas, lista_info):
