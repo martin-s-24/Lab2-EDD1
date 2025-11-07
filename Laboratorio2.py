@@ -294,18 +294,19 @@ class ListaCircularTurnos:
 
 # MAIN
 
-listaheroe = ListaHeroe()
-listaheroe.agregar_heroe("Aragorn", 10, 100, 20, "fuego")
-listaheroe.agregar_heroe("Legolas", 8, 80, 25, "agua")
-listaheroe.agregar_heroe("Gimili", 12, 70, 30, "tierra")
-listaheroe.agregar_heroe("Tron", 15, 90, 30, "agua")
-listaheroe.mostrar_lista()
+if __name__ == '__main__':
+    listaheroe = ListaHeroe()
+    listaheroe.agregar_heroe("Aragorn", 10, 100, 20, "fuego")
+    listaheroe.agregar_heroe("Legolas", 8, 80, 25, "agua")
+    listaheroe.agregar_heroe("Gimili", 12, 70, 30, "tierra")
+    listaheroe.agregar_heroe("Tron", 15, 90, 30, "agua")
+    listaheroe.mostrar_lista()
 
-listaturno = ListaCircularTurnos()
-listaturno.agregar_turnos(listaheroe)
-listaturno.mostrar_turnoscircular()
+    listaturno = ListaCircularTurnos()
+    listaturno.agregar_turnos(listaheroe)
+    listaturno.mostrar_turnoscircular()
 
-listaturno.recorrer(5, listaheroe)
+    listaturno.recorrer(5, listaheroe)
 
-listaheroe.heroe_mayor_PV()
-listaheroe.mostrar_lista_final()
+    listaheroe.heroe_mayor_PV()
+    listaheroe.mostrar_lista_final()
