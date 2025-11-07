@@ -140,6 +140,11 @@ class ListaHeroe:
             self.obtener_poder(nombre_atacante) == "tierra" and self.obtener_poder(nombre_atacado) == "fuego"):
             daño = round(daño / 2)
             print(f"El ataque de {nombre_atacante} ({self.obtener_poder(nombre_atacante)}) no es muy efectivo contra {nombre_atacado} ({self.obtener_poder(nombre_atacado)}). Daño reducido a la mitad.")
+        elif (self.obtener_poder(nombre_atacante) == "fuego" and self.obtener_poder(nombre_atacado) == "tierra" or
+            self.obtener_poder(nombre_atacante) == "agua" and self.obtener_poder(nombre_atacado) == "fuego" or
+            self.obtener_poder(nombre_atacante) == "tierra" and self.obtener_poder(nombre_atacado) == "agua"):
+            daño = round(daño * 2)
+            print(f"El ataque de {nombre_atacante} ({self.obtener_poder(nombre_atacante)}) es muy efectivo contra {nombre_atacado} ({self.obtener_poder(nombre_atacado)}). Daño duplicado.")
         return daño
 
 class NodoTurno:
@@ -172,26 +177,42 @@ class ListaCircularTurnos:
 
     def eliminar_turno(self, nombre_heroe):
         if not self.head:
-            print("No hay turnos para eliminar.")
-            return
+            return False
 
         actual = self.head
         previo = None
+        encontrado = False
 
+        # buscar el nodo (recorriendo hasta volver al head)
         while True:
             if actual.nombre_heroe == nombre_heroe:
-                if previo:
-                    previo.next = actual.next
-                else:
-                    temp = self.head
-                    while temp.next != self.head:
-                        temp = temp.next
-                    temp.next = actual.next
-                    self.head = actual.next
-                print(f"Héroe '{nombre_heroe}' eliminado de los turnos.")
-                return
+                encontrado = True
+                break
             previo = actual
             actual = actual.next
+            if actual == self.head:
+                break
+
+        if not encontrado:
+            return False
+
+        # caso: solo un nodo en la lista
+        if actual.next == actual:
+            self.head = None
+            return True
+
+        # si eliminamos el head
+        if previo is None:
+            # encontrar ultimo para reconectar
+            ultimo = self.head
+            while ultimo.next != self.head:
+                ultimo = ultimo.next
+            ultimo.next = actual.next
+            self.head = actual.next
+        else:
+            previo.next = actual.next
+
+        return True
 
     def mostrar_turnoscircular(self):
         if not self.head:

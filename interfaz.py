@@ -1,135 +1,190 @@
-import tkinter as tk
-from tkinter.scrolledtext import ScrolledText
-import threading
-import queue
-import sys
-import time
+import pygame
+import random
+from Laboratorio2 import ListaHeroe, ListaCircularTurnos
 
-import Laboratorio2 as game
+# Inicialización de pygame
+pygame.init()
+ANCHO, ALTO = 800, 600
+ventana = pygame.display.set_mode((ANCHO, ALTO))
+pygame.display.set_caption("Batalla de Héroes")
+
+# Colores
+BLANCO = (255, 255, 255)
+NEGRO = (0, 0, 0)
+ROJO = (255, 0, 0)
+VERDE = (0, 255, 0)
+AZUL = (0, 0, 255)
+
+# Fuente
+fuente = pygame.font.SysFont("Arial", 24)
+fuente_grande = pygame.font.SysFont("Arial", 48)
+
+# Crear las listas
+listaheroe = ListaHeroe()
+listaheroe.agregar_heroe("Aragorn", 10, 85, 20, "fuego")
+listaheroe.agregar_heroe("Legolas", 8, 80, 25, "agua")
+listaheroe.agregar_heroe("Gimili", 12, 70, 30, "tierra")
+listaheroe.agregar_heroe("Tron", 15, 90, 30, "agua")
+
+listaturno = ListaCircularTurnos()
+listaturno.agregar_turnos(listaheroe)
+
+# Variables de control
+reloj = pygame.time.Clock()
+ejecutando = True
+ronda = 1
+accion_actual = ""
+mensaje = ""
+
+# Turnos
+turno = listaturno.head
+primer_turno = turno.nombre_heroe  # para saber cuándo vuelve al inicio
 
 
-class QueueWriter:
-    """Redirect sys.stdout writes into a queue (for GUI polling)."""
-    def __init__(self, q):
-        self.q = q
+# Función para dibujar los héroes en pantalla
+def dibujar_heroes():
+    ventana.fill(BLANCO)
+    y = 100
+    actual = listaheroe.head
+    while actual:
+        # Color de la barra de vida
+        color_barra = VERDE if actual.puntosvida > 0 else ROJO
+        barra_vida = pygame.Rect(400, y, max(actual.puntosvida, 0) * 2, 20)
+        pygame.draw.rect(ventana, color_barra, barra_vida)
 
-    def write(self, msg):
-        if msg:
-            self.q.put(msg)
-
-    def flush(self):
-        pass
-
-
-def create_gui():
-    root = tk.Tk()
-    root.title('Clash Fight')
-
-    # Banner / encabezado creativo
-    banner = tk.Frame(root, bg='#2b2b2b')
-    banner.pack(fill=tk.X)
-
-    title_lbl = tk.Label(banner, text='Clash Fight', fg='white', bg='#2b2b2b',
-                         font=('Helvetica', 28, 'bold'))
-    title_lbl.pack(padx=12, pady=(12, 0))
-
-    subtitle = tk.Label(banner, text='¡Batalla de héroes épica!', fg='#ffd24d', bg='#2b2b2b',
-                        font=('Helvetica', 12, 'italic'))
-    subtitle.pack(padx=12, pady=(0, 12))
-
-    frame = tk.Frame(root)
-    frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-
-    text = ScrolledText(frame, width=80, height=25)
-    text.pack(fill=tk.BOTH, expand=True)
-
-    control_frame = tk.Frame(root)
-    control_frame.pack(fill=tk.X, padx=8, pady=(0, 8))
-
-    rounds_var = tk.IntVar(value=5)
-    tk.Label(control_frame, text='Rondas:').pack(side=tk.LEFT)
-    tk.Entry(control_frame, width=4, textvariable=rounds_var).pack(side=tk.LEFT, padx=(0, 8))
-
-    # Styled Play button
-    play_btn = tk.Button(control_frame, text='▶ Play', bg='#ff5c5c', fg='white',
-                         activebackground='#ff7b7b', font=('Helvetica', 11, 'bold'))
-    play_btn.pack(side=tk.LEFT)
-
-    q = None
-    worker_thread = None
-    original_stdout = sys.stdout
-
-    def poll_queue():
-        nonlocal q, worker_thread, original_stdout
-        try:
-            while True:
-                msg = q.get_nowait()
-                if msg is None:
-                    # sentinel: trabajo terminado
-                    play_btn.config(state=tk.NORMAL)
-                    sys.stdout = original_stdout
-                    text.insert(tk.END, '\n-- Combate finalizado --\n')
-                    text.see(tk.END)
-                    return
-                text.insert(tk.END, msg)
-                text.see(tk.END)
-        except queue.Empty:
-            pass
-        if worker_thread and worker_thread.is_alive():
-            root.after(100, poll_queue)
+        # Resaltar héroe en turno
+        if actual.nombre == turno.nombre_heroe:
+            texto = fuente.render(f"> {actual.nombre} ({actual.poder}) - PV: {actual.puntosvida}", True, AZUL)
         else:
-            if sys.stdout is not original_stdout:
-                sys.stdout = original_stdout
-            play_btn.config(state=tk.NORMAL)
+            texto = fuente.render(f"{actual.nombre} ({actual.poder}) - PV: {actual.puntosvida}", True, NEGRO)
 
-    def start_battle():
-        nonlocal q, worker_thread, original_stdout
-        play_btn.config(state=tk.DISABLED)
-        text.delete('1.0', tk.END)
-        q = queue.Queue()
-        original_stdout = sys.stdout
-        sys.stdout = QueueWriter(q)
+        ventana.blit(texto, (50, y))
+        actual = actual.next
+        y += 60
 
-        def worker():
-            # Crear las estructuras del juego localmente (no ejecutar main de module)
-            listaheroe = game.ListaHeroe()
-            listaheroe.agregar_heroe("Aragorn", 10, 100, 20, "fuego")
-            listaheroe.agregar_heroe("Legolas", 8, 80, 25, "agua")
-            listaheroe.agregar_heroe("Gimili", 12, 70, 30, "tierra")
-            listaheroe.agregar_heroe("Tron", 15, 90, 30, "agua")
-
-            listaturno = game.ListaCircularTurnos()
-            listaturno.agregar_turnos(listaheroe)
-
-            # Imprimir estado inicial y ejecutar combate
-            listaheroe.mostrar_lista()
-            listaturno.mostrar_turnoscircular()
-            listaturno.recorrer(rounds_var.get(), listaheroe)
-            listaheroe.heroe_mayor_PV()
-            listaheroe.mostrar_lista_final()
-
-            # marcar finalización
-            q.put(None)
-
-        worker_thread = threading.Thread(target=worker, daemon=True)
-        worker_thread.start()
-        root.after(100, poll_queue)
-
-    play_btn.config(command=start_battle)
-
-    # Mensaje inicial más creativo
-    welcome = (
-        "Bienvenido a Clash Fight!\n"
-        "Reúne a tus héroes, pulsa Play y observa cómo se desarrolla la batalla.\n\n"
-        "Consejos:\n"
-        " - Ajusta el número de rondas antes de empezar.\n"
-        " - Observa los efectos de los poderes (fuego/agua/tierra).\n\n"
-    )
-    text.insert(tk.END, welcome)
-    text.insert(tk.END, 'Pulsa ▶ Play para iniciar el combate.\n')
-
-    root.mainloop()
+    # Mostrar info general
+    texto_ronda = fuente.render(f"Ronda: {ronda}", True, NEGRO)
+    ventana.blit(texto_ronda, (600, 30))
+    texto_accion = fuente.render(accion_actual, True, AZUL)
+    ventana.blit(texto_accion, (50, 30))
+    texto_mensaje = fuente.render(mensaje, True, NEGRO)
+    ventana.blit(texto_mensaje, (50, 500))
+    pygame.display.flip()
 
 
-if __name__ == '__main__':
-    create_gui()
+# Función para mostrar el ganador final
+def mostrar_ganador():
+    ganador = None
+    mayor_pv = -1
+    actual = listaheroe.head
+    while actual:
+        if actual.puntosvida > mayor_pv:
+            mayor_pv = actual.puntosvida
+            ganador = actual.nombre
+        actual = actual.next
+
+    texto_final = fuente_grande.render("¡Fin del combate!", True, ROJO)
+    texto_ganador = fuente.render(f"El ganador es {ganador} con {mayor_pv} PV.", True, NEGRO)
+    ventana.blit(texto_final, (220, 350))
+    ventana.blit(texto_ganador, (250, 420))
+    pygame.display.flip()
+    pygame.time.delay(4000)
+
+
+# Bucle principal
+while ejecutando:
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            ejecutando = False
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE:  # Espacio = ejecutar un turno
+
+                # 🔹 Verificar fin de combate antes del turno
+                vivos = 0
+                actual = listaheroe.head
+                while actual:
+                    if actual.puntosvida > 0:
+                        vivos += 1
+                    actual = actual.next
+                if ronda > 5 or vivos <= 1:
+                    mensaje = "¡Fin del combate!"
+                    accion_actual = ""
+                    dibujar_heroes()
+                    mostrar_ganador()
+                    ejecutando = False
+                    break
+
+                # Si la lista de turnos quedó vacía, terminar
+                if not listaturno.head:
+                    mensaje = "No hay más turnos. Fin."
+                    mostrar_ganador()
+                    ejecutando = False
+                    break
+
+                # Asegurarse de que 'turno' siempre apunte a algo válido
+                if turno is None:
+                    turno = listaturno.head
+
+                nombre = turno.nombre_heroe
+                accion = random.choice(["A", "C", "P"])
+                accion_actual = f"Turno de {nombre} - Acción: {accion}"
+
+                if accion == "A":
+                    heroe_atacado = listaturno.atacar_heroe_aleatorio(nombre, listaheroe)
+                    if heroe_atacado is None:
+                        mensaje = f"{nombre} no encontró objetivo."
+                    else:
+                        daño = listaheroe.calcular_daño(nombre, heroe_atacado)
+                        mensaje = f"{nombre} ataca a {heroe_atacado} con {daño} de daño"
+                        derrotado = listaheroe.restar_vida_aleatoria(heroe_atacado, daño)
+                        if derrotado:
+                            removed = listaturno.eliminar_turno(heroe_atacado)
+                            # actualizar referencias si se eliminó
+                            if removed:
+                                # si la lista quedó vacía, terminar partida
+                                if not listaturno.head:
+                                    mensaje = "¡Fin del combate! (todos los turnos eliminados)"
+                                    dibujar_heroes()
+                                    mostrar_ganador()
+                                    ejecutando = False
+                                    break
+                                # si 'turno' apuntaba al eliminado, moverlo al head actual
+                                if turno and turno.nombre_heroe == heroe_atacado:
+                                    turno = listaturno.head
+                                # actualizar primer_turno (opcional)
+                                primer_turno = listaturno.head.nombre_heroe
+                elif accion == "C":
+                    puntos = random.randint(5, 30)
+                    listaheroe.curar_heroe(nombre, puntos)
+                    mensaje = f"{nombre} se cura {puntos} puntos."
+                else:
+                    mensaje = f"{nombre} pasa su turno."
+
+                # avanzar el turno si la partida sigue
+                if ejecutando and listaturno.head:
+                    # si 'turno' no está en la lista actual (por eliminación), reubicarlo
+                    # lo más sencillo: si turno.nombre_heroe no existe en la lista, poner turno = listaturno.head
+                    existe_turno = False
+                    temp = listaturno.head
+                    while True:
+                        if temp.nombre_heroe == turno.nombre_heroe:
+                            existe_turno = True
+                            break
+                        temp = temp.next
+                        if temp == listaturno.head:
+                            break
+                    if not existe_turno:
+                        turno = listaturno.head
+                    else:
+                        turno = turno.next
+
+                    # 🔹 Incrementar ronda cuando volvemos al head actual
+                    if listaturno.head and turno == listaturno.head:
+                        ronda += 1
+
+                dibujar_heroes()
+
+    dibujar_heroes()
+    reloj.tick(30)
+
+pygame.quit()
